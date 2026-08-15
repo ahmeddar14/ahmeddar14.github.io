@@ -72,8 +72,19 @@
     }
   };
 
+  /* -------- Correspondances parcours ↔ écrans -------- */
+  var SETS        = ['alphabet', 'fatha'];
+  var GRID_OF     = { alphabet: 'grid',   fatha: 'fgrid'   };
+  var LETTER_OF   = { alphabet: 'letter', fatha: 'fletter' };
+  var SET_OF      = { letter: 'alphabet', fletter: 'fatha' };
+
   /* -------- Raccourcis DOM -------- */
   var $ = function (s) { return document.querySelector(s); };
+  var stage     = $('#stage');
+  var menu      = $('#menu');
+  var toastEl   = $('#toast');
+  var glyphWrap = $('#glyph-wrap');
+  var glyphText = $('#glyph-text');
   var screens = {
     home:    $('#screen-home'),
     grid:    $('#screen-grid'),
@@ -81,48 +92,93 @@
     fgrid:   $('#screen-fgrid'),
     fletter: $('#screen-fletter')
   };
-  var letterBg  = $('#letter-bg');
-  var fletterBg = $('#fletter-bg');
-  var glyphWrap = $('#glyph-wrap');
-  var glyphText = $('#glyph-text');
-  var toastEl   = $('#toast');
-  var tiles = {
-    alphabet: $('#tiles-grid'),
-    fatha:    $('#tiles-fgrid')
-  };
+  var bg      = { alphabet: $('#letter-bg'),        fatha: $('#fletter-bg') };
+  var sayBtn  = { alphabet: $('#btn-say'),          fatha: $('#btn-fsay') };
+  var counter = { alphabet: $('#counter-alphabet'), fatha: $('#counter-fatha') };
+  var tiles   = { alphabet: $('#tiles-grid'),       fatha: $('#tiles-fgrid') };
 
-  /* Écran de détail associé à chaque parcours */
-  var LETTER_SCREEN = { alphabet: 'letter', fatha: 'fletter' };
+  var current = { alphabet: 0, fatha: 0 };
+  var currentScreen = 'home';
 
-  var current   = { alphabet: 0, fatha: 0 };
-  var playingAll = false;
+  /* ======================= Mise à l'échelle ======================= */
+  /* --s sert d'unité de référence aux surcouches (menu, compteur…) */
+  function sizeStage() {
+    stage.style.setProperty('--s', stage.clientWidth + 'px');
+  }
+  window.addEventListener('resize', sizeStage);
+  window.addEventListener('orientationchange', function () {
+    setTimeout(sizeStage, 250);
+  });
+  sizeStage();
 
-  /* ======================= Navigation ======================= */
-  function show(name) {
-    Object.keys(screens).forEach(function (k) {
-      screens[k].classList.toggle('is-active', k === name);
-    });
-    stopSpeech();
-    stopClip();
-    if (name !== 'grid') stopPlayAll();
+  /* ======================= Chiffres arabes ======================= */
+  var AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+  function arNum(n) {
+    return String(n).replace(/\d/g, function (d) { return AR_DIGITS[+d]; });
   }
 
-  function openLetter(set, i) {
+  /* ======================= Routage (adresse + bouton Retour) =======================
+     L'adresse reflète l'écran affiché : #alphabet, #fatha/3 …
+     Le bouton « retour » du navigateur recule donc d'un écran au lieu
+     de quitter le site, et un rafraîchissement rouvre la même page.   */
+  function hashOf(state) {
+    if (state.screen === 'home') return '#';
+    if (state.screen === 'grid')  return '#alphabet';
+    if (state.screen === 'fgrid') return '#fatha';
+    return '#' + SET_OF[state.screen] + '/' + (state.i + 1);
+  }
+
+  function parseHash(h) {
+    var parts = String(h || '').replace(/^#/, '').split('/');
+    var set = SETS.indexOf(parts[0]) >= 0 ? parts[0] : null;
+    if (!set) return { screen: 'home' };
+    if (parts.length > 1) {
+      var i = parseInt(parts[1], 10) - 1;
+      if (i >= 0 && i < LETTERS.length) return { screen: LETTER_OF[set], i: i };
+    }
+    return { screen: GRID_OF[set] };
+  }
+
+  function navigate(state) {
+    render(state);
+    history.pushState(state, '', hashOf(state));
+  }
+
+  window.addEventListener('popstate', function (e) {
+    render(e.state || parseHash(location.hash), true);
+  });
+
+  /* ======================= Affichage d'un écran ======================= */
+  function render(state, silent) {
+    var set = SET_OF[state.screen];
+    if (set) renderLetter(set, state.i || 0);
+
+    currentScreen = state.screen;
+    Object.keys(screens).forEach(function (k) {
+      screens[k].classList.toggle('is-active', k === state.screen);
+    });
+    closeMenu();
+    stopAll();
+
+    if (set && !silent) say(set, current[set]);
+  }
+
+  function renderLetter(set, i) {
     var n = LETTERS.length;
     current[set] = ((i % n) + n) % n;
     var L = LETTERS[current[set]];
 
     if (set === 'fatha') {
-      fletterBg.src = 'assets/fatha/' + L.slug + '.jpg';
-      fletterBg.alt = 'الحرف ' + L.fat + ' — ' + L.word;
+      bg.fatha.src = 'assets/fatha/' + L.slug + '.jpg';
+      bg.fatha.alt = 'الحرف ' + L.fat + ' — ' + L.word;
     } else if (L.img) {
-      letterBg.src = 'assets/alphabet/' + L.img + '.jpg';
-      letterBg.alt = 'حرف ' + L.name;
+      bg.alphabet.src = 'assets/alphabet/' + L.img + '.jpg';
+      bg.alphabet.alt = 'حرف ' + L.name;
       glyphWrap.hidden = true;
     } else {
       var p = PLATES[L.plate];
-      letterBg.src = 'assets/alphabet/plate-' + L.plate + '.jpg';
-      letterBg.alt = 'حرف ' + L.name;
+      bg.alphabet.src = 'assets/alphabet/plate-' + L.plate + '.jpg';
+      bg.alphabet.alt = 'حرف ' + L.name;
       glyphWrap.style.setProperty('--gx', ((p.cx - p.r) * 100).toFixed(2) + '%');
       glyphWrap.style.setProperty('--gw', (p.r * 200).toFixed(2) + '%');
       glyphWrap.style.setProperty('--gy', ((p.cy - p.r * K) * 100).toFixed(2) + '%');
@@ -136,8 +192,12 @@
       glyphWrap.style.animation = '';
     }
 
-    show(LETTER_SCREEN[set]);
-    sayCurrent(set);
+    counter[set].textContent = arNum(current[set] + 1) + ' من ' + arNum(LETTERS.length);
+  }
+
+  function openLetter(set, i) {
+    var n = LETTERS.length;
+    navigate({ screen: LETTER_OF[set], i: ((i % n) + n) % n });
   }
 
   /* ======================= Grilles ======================= */
@@ -154,161 +214,175 @@
       b.style.top    = g.rows[row] + '%';
       b.style.width  = g.w + '%';
       b.style.height = g.h[row] + '%';
-      b.addEventListener('click', function () {
-        stopPlayAll();
-        openLetter(set, i);
-      });
+      b.addEventListener('click', function () { openLetter(set, i); });
       frag.appendChild(b);
     });
     tiles[set].appendChild(frag);
   }
 
-  /* ======================= Son : fichiers MP3 ======================= */
+  /* ======================= Son =======================
+     Les deux parcours utilisent les mêmes enregistrements : une vraie
+     voix, identique partout, qui marche hors connexion et sur tous les
+     appareils. La synthèse vocale du navigateur a été abandonnée —
+     elle restait muette sur la plupart des téléphones, faute de voix
+     arabe installée.                                                  */
   var clip = new Audio();
   clip.preload = 'none';
+  var playingSet = null;
 
-  function playClip(slug) {
-    stopSpeech();
+  function say(set, i, onEnd) {
+    var slug = LETTERS[i].slug;
+    stopSound();
+    playingSet = set;
     clip.src = 'assets/fatha/audio/' + slug + '.mp3';
+    var done = function () {
+      markPlaying(set, false);
+      if (onEnd) { var f = onEnd; onEnd = null; f(); }
+    };
+    clip.onended = done;
+    clip.onerror = done;
+    markPlaying(set, true);
     var p = clip.play();
-    if (p && p.catch) p.catch(function () { /* lecture refusée : on ignore */ });
+    if (p && p.catch) p.catch(done);
   }
 
-  function stopClip() {
+  function stopSound() {
+    clip.onended = null;
+    clip.onerror = null;
     if (!clip.paused) clip.pause();
-    clip.currentTime = 0;
+    SETS.forEach(function (s) { markPlaying(s, false); });
+    playingSet = null;
   }
 
-  /* ======================= Son : voix de synthèse ======================= */
-  var voices = [];
-  function loadVoices() {
-    if (!('speechSynthesis' in window)) return;
-    voices = window.speechSynthesis.getVoices() || [];
-  }
-  loadVoices();
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+  /* Petite pulsation sur le haut-parleur pendant la lecture */
+  function markPlaying(set, on) {
+    if (sayBtn[set]) sayBtn[set].classList.toggle('is-playing', !!on);
   }
 
-  var warned = false;
-  function speak(text, onEnd) {
-    if (!('speechSynthesis' in window)) {
-      if (!warned) { toast('المتصفح لا يدعم النطق الصوتي'); warned = true; }
-      if (onEnd) onEnd();
-      return;
+  /* -------- Lecture enchaînée des 28 lettres -------- */
+  var running = null;   // parcours en cours de lecture, ou null
+
+  function playAll(set) {
+    if (running) {
+      var same = running === set;
+      stopAll();
+      if (same) return;
     }
-    window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = 'ar-SA';
-    u.rate = 0.8;
-    u.pitch = 1.15;
-    var v = voices.filter(function (x) { return /^ar/i.test(x.lang); })[0];
-    if (v) {
-      u.voice = v;
-    } else if (!warned) {
-      toast('لا توجد أصوات عربية على هذا الجهاز — أضفها من إعدادات النظام');
-      warned = true;
-    }
-    if (onEnd) {
-      u.onend = onEnd;
-      u.onerror = onEnd;
-    }
-    window.speechSynthesis.speak(u);
-  }
-
-  function stopSpeech() {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-  }
-
-  /* Prononce la lettre courante du parcours demandé */
-  function sayCurrent(set) {
-    var L = LETTERS[current[set]];
-    if (set === 'fatha') playClip(L.slug);
-    else speak(L.name);
-  }
-
-  /* -------- Lecture de tout l'alphabet -------- */
-  function playAll() {
-    if (playingAll) { stopPlayAll(); return; }
-    playingAll = true;
-    var box = tiles.alphabet;
+    running = set;
+    updatePlayBtn();
     var i = 0;
     (function next() {
-      if (!playingAll || i >= LETTERS.length) { stopPlayAll(); return; }
-      Array.prototype.forEach.call(box.children, function (el) {
-        el.classList.remove('is-speaking');
-      });
-      box.children[i].classList.add('is-speaking');
+      if (running !== set || i >= LETTERS.length) { stopAll(); return; }
+      highlight(set, i);
       var idx = i++;
-      speak(LETTERS[idx].name, function () {
-        setTimeout(next, 220);
+      say(set, idx, function () {
+        if (running === set) setTimeout(next, 260);
       });
     })();
   }
 
-  function stopPlayAll() {
-    playingAll = false;
-    stopSpeech();
-    Array.prototype.forEach.call(tiles.alphabet.children, function (el) {
-      el.classList.remove('is-speaking');
+  function highlight(set, i) {
+    Array.prototype.forEach.call(tiles[set].children, function (el, k) {
+      el.classList.toggle('is-speaking', k === i);
     });
   }
 
+  function stopAll() {
+    running = null;
+    updatePlayBtn();
+    stopSound();
+    SETS.forEach(function (s) {
+      Array.prototype.forEach.call(tiles[s].children, function (el) {
+        el.classList.remove('is-speaking');
+      });
+    });
+  }
+
+  function updatePlayBtn() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-playall]'), function (b) {
+      b.classList.toggle('is-playing', running === b.dataset.playall);
+    });
+  }
+
+  /* ======================= Menu du contenu ======================= */
+  function openMenu() {
+    stopAll();
+    menu.hidden = false;
+    var first = menu.querySelector('.menu-item');
+    if (first) first.focus();
+  }
+  function closeMenu() { menu.hidden = true; }
+
+  menu.addEventListener('click', function (e) {
+    if (e.target === menu) closeMenu();
+  });
+
   /* ======================= Toast ======================= */
   var toastTimer;
-  function toast(msg) {
+  function toast(msg, ms) {
     toastEl.textContent = msg;
     toastEl.hidden = false;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { toastEl.hidden = true; }, 3200);
+    toastTimer = setTimeout(function () { toastEl.hidden = true; }, ms || 3200);
   }
 
   /* ======================= Écouteurs ======================= */
   document.addEventListener('click', function (e) {
-    var go = e.target.closest('[data-go]');
-    if (go) { show(go.dataset.go); return; }
+    var el;
 
-    var step = e.target.closest('[data-step]');
-    if (step) {
-      var set = step.dataset.set;
-      openLetter(set, current[set] + Number(step.dataset.step));
+    if ((el = e.target.closest('[data-menu-close]'))) { closeMenu(); return; }
+    if ((el = e.target.closest('[data-menu]')))       { openMenu(); return; }
+    if ((el = e.target.closest('[data-go]')))         { navigate({ screen: el.dataset.go }); return; }
+    if ((el = e.target.closest('[data-playall]')))    { playAll(el.dataset.playall); return; }
+    if ((el = e.target.closest('[data-say]')))        { stopAll(); say(el.dataset.say, current[el.dataset.say]); return; }
+    if ((el = e.target.closest('[data-step]')))       {
+      var set = el.dataset.set;
+      openLetter(set, current[set] + Number(el.dataset.step));
+      return;
     }
+    if ((el = e.target.closest('[data-soon]')))       { toast('هذه الميزة قادمة قريبًا إن شاء الله 🌟'); return; }
   });
-
-  $('#btn-say').addEventListener('click',      function () { sayCurrent('alphabet'); });
-  $('#btn-say-big').addEventListener('click',  function () { sayCurrent('alphabet'); });
-  $('#btn-fsay').addEventListener('click',     function () { sayCurrent('fatha'); });
-  $('#btn-fsay-big').addEventListener('click', function () { sayCurrent('fatha'); });
-  $('#btn-playall').addEventListener('click', playAll);
 
   /* -------- Clavier -------- */
   document.addEventListener('keydown', function (e) {
-    var set = screens.letter.classList.contains('is-active')  ? 'alphabet'
-            : screens.fletter.classList.contains('is-active') ? 'fatha'
-            : null;
-    if (!set) return;
+    if (!menu.hidden) {
+      if (e.key === 'Escape') closeMenu();
+      return;
+    }
+    var set = SET_OF[currentScreen];
+    if (!set) {
+      if (e.key === 'Escape' && currentScreen !== 'home') navigate({ screen: 'home' });
+      return;
+    }
     if (e.key === 'ArrowLeft')  openLetter(set, current[set] - 1);
     if (e.key === 'ArrowRight') openLetter(set, current[set] + 1);
-    if (e.key === 'Escape')     show(set === 'fatha' ? 'fgrid' : 'grid');
-    if (e.key === ' ') { e.preventDefault(); sayCurrent(set); }
+    if (e.key === 'Escape')     navigate({ screen: GRID_OF[set] });
+    if (e.key === ' ')          { e.preventDefault(); stopAll(); say(set, current[set]); }
   });
 
-  /* -------- Balayage tactile sur les écrans d'une lettre -------- */
-  ['alphabet', 'fatha'].forEach(function (set) {
-    var el = screens[LETTER_SCREEN[set]];
-    var x0 = null;
+  /* -------- Balayage tactile sur les fiches -------- */
+  SETS.forEach(function (set) {
+    var el = screens[LETTER_OF[set]];
+    var x0 = null, y0 = null;
     el.addEventListener('touchstart', function (e) {
       x0 = e.changedTouches[0].clientX;
+      y0 = e.changedTouches[0].clientY;
     }, { passive: true });
     el.addEventListener('touchend', function (e) {
       if (x0 === null) return;
       var dx = e.changedTouches[0].clientX - x0;
-      if (Math.abs(dx) > 60) openLetter(set, current[set] + (dx < 0 ? -1 : 1));
-      x0 = null;
+      var dy = e.changedTouches[0].clientY - y0;
+      // en portrait la scène est pivotée : le balayage utile est vertical
+      var rotated = window.matchMedia('(orientation: portrait) and (pointer: coarse)').matches;
+      var d = rotated ? dy : dx;
+      if (Math.abs(d) > 60 && Math.abs(d) > Math.abs(rotated ? dx : dy)) {
+        openLetter(set, current[set] + (d < 0 ? -1 : 1));
+      }
+      x0 = y0 = null;
     }, { passive: true });
   });
 
-  /* -------- Préchargement des visuels -------- */
+  /* -------- Préchargement des visuels et des sons -------- */
   function preload() {
     var srcs = ['assets/alphabet/home.jpg', 'assets/alphabet/grid.jpg', 'assets/fatha/grid.jpg'];
     LETTERS.forEach(function (L) {
@@ -317,9 +391,27 @@
       srcs.push('assets/fatha/' + L.slug + '.jpg');
     });
     srcs.forEach(function (s) { (new Image()).src = s; });
+
+    // les 28 sons pèsent moins de 1 Mo : on les met en cache pour que la
+    // lecture enchaînée ne marque pas de temps d'arrêt entre les lettres
+    if (window.fetch) {
+      LETTERS.forEach(function (L) {
+        fetch('assets/fatha/audio/' + L.slug + '.mp3').catch(function () {});
+      });
+    }
   }
 
+  /* ======================= Démarrage ======================= */
   buildGrid('alphabet');
   buildGrid('fatha');
+
+  var start = parseHash(location.hash);
+  render(start, true);
+  history.replaceState(start, '', hashOf(start));
+
+  if (window.matchMedia('(orientation: portrait) and (pointer: coarse)').matches) {
+    toast('أدِر جهازك أفقيًا لعرض أوضح 📱', 4200);
+  }
+
   setTimeout(preload, 600);
 })();

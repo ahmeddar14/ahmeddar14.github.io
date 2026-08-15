@@ -1,8 +1,13 @@
 /* ===========================================================
    متعة التعلم — styles
-   Les écrans reprennent exactement les visuels d'origine :
-   chaque écran est une image de fond, et les zones cliquables
-   sont positionnées en pourcentage par-dessus.
+
+   Chaque écran est une image de fond ; les zones cliquables sont
+   posées par-dessus en pourcentages, donc tout reste aligné quelle
+   que soit la taille de l'écran.
+
+   --s : largeur de la scène en pixels, mise à jour par app.js.
+         Toutes les tailles de texte des surcouches en dépendent,
+         pour qu'elles grandissent avec la scène.
    =========================================================== */
 
 * { box-sizing: border-box; }
@@ -15,6 +20,7 @@ html, body {
   font-family: 'Baloo Bhaijaan 2', 'Tajawal', system-ui, sans-serif;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
 }
 
 body {
@@ -25,8 +31,17 @@ body {
     radial-gradient(circle at 50% 0%, #2b3170 0%, #14183c 60%, #0b0e26 100%);
 }
 
+button {
+  font: inherit;
+  color: inherit;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* --- La scène garde exactement le ratio des visuels --- */
 .stage {
+  --s: 1076px;
   position: relative;
   width: min(100vw, calc(100vh * 1076 / 717));
   aspect-ratio: 1076 / 717;
@@ -34,6 +49,21 @@ body {
   border-radius: clamp(0px, 1.2vw, 18px);
   box-shadow: 0 24px 70px rgba(0, 0, 0, .55);
   background: #bfe3ff;
+}
+
+/* Téléphone tenu à la verticale : on fait pivoter la scène pour
+   qu'elle remplisse l'écran au lieu d'occuper une mince bande.
+   Dès que l'appareil est tourné, la règle ne s'applique plus et
+   l'affichage redevient normal. */
+@media (orientation: portrait) and (pointer: coarse) {
+  .stage {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: min(100vh, calc(100vw * 1076 / 717));
+    transform: translate(-50%, -50%) rotate(90deg);
+    border-radius: 0;
+  }
 }
 
 .screen {
@@ -59,7 +89,11 @@ body {
   -webkit-user-drag: none;
 }
 
-/* --- Zones cliquables invisibles --- */
+/* ===========================================================
+   Zones cliquables posées sur les visuels
+   Invisibles au repos, elles s'éclairent au survol et au doigt :
+   sans ça, rien n'indique qu'il y a quelque chose à toucher.
+   =========================================================== */
 .hs {
   position: absolute;
   border: 0;
@@ -68,19 +102,57 @@ body {
   background: transparent;
   cursor: pointer;
   border-radius: 14%/20%;
-  transition: transform .16s cubic-bezier(.34, 1.56, .64, 1), filter .16s ease;
+  transition: transform .16s cubic-bezier(.34, 1.56, .64, 1),
+              background-color .16s ease, box-shadow .16s ease;
   transform-origin: center;
 }
-.hs:hover   { transform: scale(1.07); filter: brightness(1.06) drop-shadow(0 6px 10px rgba(0,0,0,.25)); }
-.hs:active  { transform: scale(.94); }
+.hs:hover {
+  background: rgba(255, 255, 255, .18);
+  box-shadow: 0 0 0 .28vmin rgba(255, 255, 255, .55), 0 .5vmin 1.4vmin rgba(0, 0, 0, .22);
+  transform: scale(1.05);
+}
+.hs:active {
+  background: rgba(255, 255, 255, .34);
+  transform: scale(.95);
+}
 .hs:focus-visible {
-  outline: 4px dashed rgba(255, 255, 255, .9);
-  outline-offset: 3px;
+  outline: .4vmin dashed rgba(255, 255, 255, .95);
+  outline-offset: .3vmin;
 }
 .hs.pill  { border-radius: 999px; }
 .hs.round { border-radius: 50%; }
-.hs.soft:hover  { transform: scale(1.02); filter: none; }
-.hs.soft:active { transform: scale(.99); }
+.hs.soft:hover  { transform: scale(1.02); background: rgba(255, 255, 255, .12); box-shadow: none; }
+.hs.soft:active { transform: scale(.99); background: rgba(255, 255, 255, .22); }
+
+/* Halo qui invite à toucher les deux boutons de l'accueil */
+.hs.hint::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: invite 2.8s ease-out infinite;
+}
+.hs.hint:hover::after { animation: none; }
+@keyframes invite {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 255, 255, .60); }
+  70%  { box-shadow: 0 0 0 2.2vmin rgba(255, 255, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+/* Pastille qui bat pendant la lecture du son */
+.hs.is-playing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: ripple 1s ease-out infinite;
+}
+@keyframes ripple {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 255, 255, .85); }
+  100% { box-shadow: 0 0 0 3vmin rgba(255, 255, 255, 0); }
+}
 
 /* --- Tuiles des grilles --- */
 .tile {
@@ -90,18 +162,23 @@ body {
   background: transparent;
   cursor: pointer;
   border-radius: 18%;
-  transition: transform .18s cubic-bezier(.34, 1.56, .64, 1), box-shadow .18s ease;
+  transition: transform .18s cubic-bezier(.34, 1.56, .64, 1),
+              background-color .18s ease, box-shadow .18s ease;
 }
 .tile:hover {
+  background: rgba(255, 255, 255, .22);
   transform: scale(1.12) rotate(-2deg);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, .28);
+  box-shadow: 0 .8vmin 1.8vmin rgba(0, 0, 0, .28);
 }
-.tile:active { transform: scale(.95); }
+.tile:active {
+  background: rgba(255, 255, 255, .38);
+  transform: scale(.95);
+}
 .tile.is-speaking {
   animation: pop .5s ease infinite alternate;
-  box-shadow: 0 0 0 6px rgba(255, 255, 255, .75), 0 0 26px 8px rgba(255, 214, 0, .8);
+  box-shadow: 0 0 0 .6vmin rgba(255, 255, 255, .8), 0 0 2.6vmin .8vmin rgba(255, 214, 0, .85);
 }
-.tile:focus-visible { outline: 4px dashed #fff; outline-offset: 2px; }
+.tile:focus-visible { outline: .4vmin dashed #fff; outline-offset: .2vmin; }
 
 @keyframes pop {
   from { transform: scale(1); }
@@ -132,40 +209,172 @@ body {
   to   { transform: scale(1); opacity: 1; }
 }
 
-/* --- Boutons ronds flottants : lettre précédente / suivante, retour --- */
-.arrow-nav {
+/* ===========================================================
+   Boutons flottants : lettre précédente / suivante, retour, lecture
+   =========================================================== */
+.nav-btn {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4.2%;
+  width: 8.4%;
+  max-width: calc(var(--s) * .062);
   aspect-ratio: 1;
-  min-width: 34px;
+  min-width: 40px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, .55);
+  background: rgba(255, 255, 255, .72);
   color: #3d3172;
   display: grid;
   place-items: center;
   padding: 0;
   cursor: pointer;
   opacity: 0;
+  box-shadow: 0 .4vmin 1.2vmin rgba(0, 0, 0, .28);
   transition: opacity .2s ease, transform .2s ease, background .2s ease;
-  backdrop-filter: blur(3px);
 }
-.screen.is-active .arrow-nav { opacity: .55; }
-.arrow-nav:hover { opacity: 1; background: #fff; transform: translateY(-50%) scale(1.12); }
-.arrow-nav:focus-visible { opacity: 1; outline: 4px dashed #fff; outline-offset: 3px; }
-.arrow-nav svg { width: 48%; height: 48%; display: block; }
-.arrow-nav.prev { left: 1.4%; }
-.arrow-nav.next { right: 1.4%; }
+.screen.is-active .nav-btn { opacity: .82; }
+.nav-btn:hover  { opacity: 1; background: #fff; }
+.nav-btn:active { transform: scale(.9); }
+.nav-btn:focus-visible { opacity: 1; outline: .4vmin dashed #fff; outline-offset: .3vmin; }
+.nav-btn svg { width: 52%; height: 52%; display: block; }
 
-/* Retour à la grille, posé en haut à gauche de la fiche */
-.arrow-nav.back {
-  top: 3.5%;
-  left: 1.6%;
-  transform: none;
+.nav-btn.prev { left: 1.4%;  top: 50%; margin-top: -3.1%; }
+.nav-btn.next { right: 1.4%; top: 50%; margin-top: -3.1%; }
+.nav-btn.back { left: 1.6%;  top: 3.5%; }
+
+.nav-btn.play {
+  left: 50%;
+  bottom: 2.2%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, .88);
+  color: #c2185b;
 }
-.arrow-nav.back:hover { transform: scale(1.12); }
+.nav-btn.play:active { transform: translateX(-50%) scale(.9); }
+.nav-btn.play .i-stop { display: none; }
+.nav-btn.play.is-playing .i-play { display: none; }
+.nav-btn.play.is-playing .i-stop { display: block; }
+.nav-btn.play.is-playing { background: #fff; box-shadow: 0 0 0 .5vmin rgba(255, 214, 0, .9); }
+
+/* --- Compteur « lettre 3 / 28 » --- */
+.counter {
+  position: absolute;
+  left: 1.8%;
+  bottom: 2.4%;
+  padding: .25em .9em;
+  border-radius: 999px;
+  background: rgba(20, 10, 45, .55);
+  color: #fff;
+  font-family: 'Tajawal', sans-serif;
+  font-weight: 700;
+  font-size: calc(var(--s) * .022);
+  letter-spacing: .04em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+.screen.is-active .counter { opacity: .8; }
+
+/* ===========================================================
+   Menu du contenu
+   =========================================================== */
+.menu {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 4%;
+  background: rgba(12, 8, 40, .62);
+  backdrop-filter: blur(6px);
+  animation: fade .22s ease;
+}
+.menu[hidden] { display: none; }
+
+.menu-card {
+  position: relative;
+  width: min(78%, calc(var(--s) * .62));
+  padding: calc(var(--s) * .035) calc(var(--s) * .035) calc(var(--s) * .03);
+  border-radius: calc(var(--s) * .035);
+  background: linear-gradient(180deg, #ffffff 0%, #f3f0ff 100%);
+  box-shadow: 0 2vmin 6vmin rgba(0, 0, 0, .5);
+  animation: cardIn .32s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.menu-title {
+  margin: 0 0 calc(var(--s) * .026);
+  text-align: center;
+  color: #5b21b6;
+  font-size: calc(var(--s) * .038);
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--s) * .022);
+  width: 100%;
+  margin-bottom: calc(var(--s) * .018);
+  padding: calc(var(--s) * .014);
+  border: 0;
+  border-radius: calc(var(--s) * .024);
+  background: #ffffff;
+  box-shadow: 0 .4vmin 1.4vmin rgba(91, 33, 182, .18), inset 0 0 0 2px #ede9fe;
+  cursor: pointer;
+  text-align: start;
+  transition: transform .16s cubic-bezier(.34, 1.56, .64, 1), box-shadow .16s ease;
+}
+.menu-item:last-of-type { margin-bottom: 0; }
+.menu-item:hover  { transform: translateY(calc(var(--s) * -.004)); box-shadow: 0 1vmin 2.4vmin rgba(91, 33, 182, .30), inset 0 0 0 2px #c4b5fd; }
+.menu-item:active { transform: scale(.98); }
+.menu-item:focus-visible { outline: .4vmin dashed #7c3aed; outline-offset: .3vmin; }
+
+.menu-item img {
+  width: calc(var(--s) * .17);
+  aspect-ratio: 1076 / 717;
+  object-fit: cover;
+  border-radius: calc(var(--s) * .016);
+  flex: none;
+}
+.menu-item span { display: block; min-width: 0; }
+.menu-item b {
+  display: block;
+  color: #4c1d95;
+  font-size: calc(var(--s) * .032);
+  font-weight: 800;
+  line-height: 1.35;
+}
+.menu-item i {
+  display: block;
+  margin-top: .25em;
+  color: #7c6ba8;
+  font-family: 'Tajawal', sans-serif;
+  font-style: normal;
+  font-size: calc(var(--s) * .021);
+  line-height: 1.4;
+}
+
+.menu-close {
+  position: absolute;
+  inset-inline-end: calc(var(--s) * -.014);
+  top: calc(var(--s) * -.014);
+  width: calc(var(--s) * .055);
+  height: calc(var(--s) * .055);
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #5b21b6;
+  font-size: calc(var(--s) * .028);
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 .4vmin 1.2vmin rgba(0, 0, 0, .3);
+  transition: transform .16s ease, background .16s ease;
+}
+.menu-close:hover  { transform: scale(1.12); background: #ede9fe; }
+.menu-close:active { transform: scale(.92); }
+
+@keyframes cardIn {
+  from { transform: scale(.85) translateY(4%); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
 
 /* --- Petit message d'information --- */
 .toast {
@@ -173,21 +382,23 @@ body {
   left: 50%;
   bottom: 6%;
   transform: translateX(-50%);
-  z-index: 30;
+  z-index: 50;
+  max-width: 80%;
   padding: .6em 1.3em;
   border-radius: 999px;
-  background: rgba(20, 10, 45, .88);
+  background: rgba(20, 10, 45, .9);
   color: #fff;
   font-family: 'Tajawal', sans-serif;
-  font-size: clamp(12px, 1.7vw, 16px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+  font-size: calc(var(--s) * .026);
+  text-align: center;
+  box-shadow: 0 .8vmin 2.4vmin rgba(0, 0, 0, .35);
   animation: fade .2s ease;
 }
 .toast[hidden] { display: none; }
 
 @keyframes fade {
-  from { opacity: 0; transform: translate(-50%, 10px); }
-  to   { opacity: 1; transform: translate(-50%, 0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* --- Respect des préférences d'animation réduite --- */

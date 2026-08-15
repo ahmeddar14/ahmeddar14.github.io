@@ -9,14 +9,19 @@ donc tout reste aligné quelle que soit la taille de l'écran.
 
 ## Les deux parcours
 
-| Parcours | Écrans | Son |
-|---|---|---|
-| **الحروف الأبجدية** — les 28 lettres nues | `assets/alphabet/` | voix de synthèse du navigateur (`speechSynthesis`, `ar-SA`) |
-| **الحروف مع الفتحة** — les 28 lettres avec la fatha, chacune illustrée par un mot | `assets/fatha/` | fichiers MP3 enregistrés (`assets/fatha/audio/`) |
+| Parcours | Écrans |
+|---|---|
+| **الحروف الأبجدية** — les 28 lettres nues | `assets/alphabet/` |
+| **الحروف مع الفتحة** — les 28 lettres avec la fatha, chacune illustrée par un mot | `assets/fatha/` |
+
+Les deux utilisent les mêmes enregistrements (`assets/fatha/audio/`) : une
+vraie voix, la même partout, qui fonctionne sur tous les appareils et hors
+connexion. La synthèse vocale du navigateur a été abandonnée — elle restait
+muette sur la plupart des téléphones, faute de voix arabe installée.
 
 Depuis l'accueil : **اكتشف معانا** ouvre le premier parcours, **انضم إلينا**
-ouvre le second. Sur chaque écran, **الرئيسية** revient à l'accueil et
-**المحتوى** revient à la grille des lettres.
+ouvre le second. Sur n'importe quel écran, **المحتوى** ouvre le menu des
+parcours et **الرئيسية** revient à l'accueil.
 
 ## Navigation dans une fiche
 
@@ -24,6 +29,18 @@ ouvre le second. Sur chaque écran, **الرئيسية** revient à l'accueil et
 - flèches gauche / droite (souris, clavier) ou balayage tactile → lettre précédente / suivante
 - `Échap` ou le bouton en haut à gauche → retour à la grille
 - `Espace` → réécouter
+- le bouton ▶ de la grille enchaîne les 28 lettres
+
+L'adresse suit l'écran affiché (`#fatha/12`), donc le bouton « retour » du
+navigateur ou du téléphone recule d'un écran au lieu de quitter le site, et
+un lien vers une lettre précise peut être partagé.
+
+## Téléphone tenu à la verticale
+
+Les visuels sont au format 3:2. Affichés tels quels sur un écran de
+téléphone en portrait, ils n'occupaient qu'un tiers de la hauteur. La scène
+pivote donc d'un quart de tour pour remplir l'écran ; dès que l'appareil est
+tourné, la règle CSS ne s'applique plus et l'affichage redevient normal.
 
 ## Structure du dépôt
 
