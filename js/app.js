@@ -1,9 +1,10 @@
 /* ===========================================================
    متعة التعلم — logique de l'application
 
-   Deux parcours :
-     • « alphabet » : les 28 lettres nues (voix de synthèse)
-     • « fatha »    : les 28 lettres avec la fatha (fichiers MP3)
+   Sommaire de 15 leçons (« الحروف والمقاطع »), dont deux ont du contenu :
+     • leçon 1 « alphabet » : les 28 lettres nues
+     • leçon 5 « fatha »    : les 28 lettres avec la fatha
+   Les 13 autres sont grisées tant que leurs visuels n'existent pas.
    =========================================================== */
 (function () {
   'use strict';
@@ -72,6 +73,39 @@
     }
   };
 
+  /* -------- Les 15 leçons du sommaire « الحروف والمقاطع » --------
+     go : écran à ouvrir. Sans go, la leçon n'a pas encore de contenu :
+          elle apparaît grisée avec un cadenas.                        */
+  var LESSONS = [
+    { n:  1, title: 'الحروف المجردة',   go: 'grid'  },
+    { n:  2, title: 'الحروف المنقطة'                },
+    { n:  3, title: 'الحروف المجوفة'                },
+    { n:  4, title: 'الحروف المجردة'                },
+    { n:  5, title: 'الحروف مع الفتحة', go: 'fgrid' },
+    { n:  6, title: 'الحروف مع الضمة'               },
+    { n:  7, title: 'الحروف مع الكسرة'              },
+    { n:  8, title: 'الحروف وسط الكلمة'             },
+    { n:  9, title: 'الحروف أخر الكلمة'             },
+    { n: 10, title: 'التدريب والتوظيف على الحركات القصيرة' },
+    { n: 11, title: 'مد الفتح'                      },
+    { n: 12, title: 'مد الضم'                       },
+    { n: 13, title: 'مد الكسر'                      },
+    { n: 14, title: 'تدريب حول المدود'              },
+    { n: 15, title: 'السكون'                        }
+  ];
+
+  /* Trois colonnes de cinq lignes, listées de la droite vers la gauche */
+  var LESSON_GRID = {
+    cols: [63.20, 38.40, 13.90],
+    rows: [31.50, 41.63, 51.76, 61.89, 72.02],
+    w: 22.40,
+    h: 8.00
+  };
+
+  /* Ratio propre à certains écrans ; les autres gardent celui des fiches */
+  var RATIO = { home: [16, 9], lessons: [16, 9] };
+  var RATIO_DEFAULT = [1076, 717];
+
   /* -------- Correspondances parcours ↔ écrans -------- */
   var SETS        = ['alphabet', 'fatha'];
   var GRID_OF     = { alphabet: 'grid',   fatha: 'fgrid'   };
@@ -81,12 +115,12 @@
   /* -------- Raccourcis DOM -------- */
   var $ = function (s) { return document.querySelector(s); };
   var stage     = $('#stage');
-  var menu      = $('#menu');
   var toastEl   = $('#toast');
   var glyphWrap = $('#glyph-wrap');
   var glyphText = $('#glyph-text');
   var screens = {
     home:    $('#screen-home'),
+    lessons: $('#screen-lessons'),
     grid:    $('#screen-grid'),
     letter:  $('#screen-letter'),
     fgrid:   $('#screen-fgrid'),
@@ -101,7 +135,7 @@
   var currentScreen = 'home';
 
   /* ======================= Mise à l'échelle ======================= */
-  /* --s sert d'unité de référence aux surcouches (menu, compteur…) */
+  /* --s sert d’unité de référence aux surcouches (compteur, cadenas…) */
   function sizeStage() {
     stage.style.setProperty('--s', stage.clientWidth + 'px');
   }
@@ -122,14 +156,16 @@
      Le bouton « retour » du navigateur recule donc d'un écran au lieu
      de quitter le site, et un rafraîchissement rouvre la même page.   */
   function hashOf(state) {
-    if (state.screen === 'home') return '#';
-    if (state.screen === 'grid')  return '#alphabet';
+    if (state.screen === 'home')    return '#';
+    if (state.screen === 'lessons') return '#lessons';
+    if (state.screen === 'grid')    return '#alphabet';
     if (state.screen === 'fgrid') return '#fatha';
     return '#' + SET_OF[state.screen] + '/' + (state.i + 1);
   }
 
   function parseHash(h) {
     var parts = String(h || '').replace(/^#/, '').split('/');
+    if (parts[0] === 'lessons') return { screen: 'lessons' };
     var set = SETS.indexOf(parts[0]) >= 0 ? parts[0] : null;
     if (!set) return { screen: 'home' };
     if (parts.length > 1) {
@@ -157,7 +193,13 @@
     Object.keys(screens).forEach(function (k) {
       screens[k].classList.toggle('is-active', k === state.screen);
     });
-    closeMenu();
+
+    var ar = RATIO[state.screen] || RATIO_DEFAULT;
+    stage.style.setProperty('--arw', ar[0]);
+    stage.style.setProperty('--arh', ar[1]);
+    setTimeout(sizeStage, 300);
+    sizeStage();
+
     stopAll();
 
     if (set && !silent) say(set, current[set]);
@@ -218,6 +260,29 @@
       frag.appendChild(b);
     });
     tiles[set].appendChild(frag);
+  }
+
+  function buildLessons() {
+    var g = LESSON_GRID;
+    var box = $('#tiles-lessons');
+    var frag = document.createDocumentFragment();
+    LESSONS.forEach(function (L, i) {
+      var b = document.createElement('button');
+      b.className = 'tile lesson' + (L.go ? '' : ' locked');
+      b.type = 'button';
+      b.setAttribute('aria-label', 'الدرس ' + arNum(L.n) + ' — ' + L.title);
+      if (!L.go) b.setAttribute('aria-disabled', 'true');
+      b.style.left   = g.cols[Math.floor(i / 5)] + '%';
+      b.style.top    = g.rows[i % 5] + '%';
+      b.style.width  = g.w + '%';
+      b.style.height = g.h + '%';
+      b.addEventListener('click', function () {
+        if (L.go) navigate({ screen: L.go });
+        else toast('الدرس « ' + L.title +' » قادم قريبًا إن شاء الله 🌟');
+      });
+      frag.appendChild(b);
+    });
+    box.appendChild(frag);
   }
 
   /* ======================= Son =======================
@@ -304,19 +369,6 @@
     });
   }
 
-  /* ======================= Menu du contenu ======================= */
-  function openMenu() {
-    stopAll();
-    menu.hidden = false;
-    var first = menu.querySelector('.menu-item');
-    if (first) first.focus();
-  }
-  function closeMenu() { menu.hidden = true; }
-
-  menu.addEventListener('click', function (e) {
-    if (e.target === menu) closeMenu();
-  });
-
   /* ======================= Toast ======================= */
   var toastTimer;
   function toast(msg, ms) {
@@ -330,8 +382,6 @@
   document.addEventListener('click', function (e) {
     var el;
 
-    if ((el = e.target.closest('[data-menu-close]'))) { closeMenu(); return; }
-    if ((el = e.target.closest('[data-menu]')))       { openMenu(); return; }
     if ((el = e.target.closest('[data-go]')))         { navigate({ screen: el.dataset.go }); return; }
     if ((el = e.target.closest('[data-playall]')))    { playAll(el.dataset.playall); return; }
     if ((el = e.target.closest('[data-say]')))        { stopAll(); say(el.dataset.say, current[el.dataset.say]); return; }
@@ -345,13 +395,11 @@
 
   /* -------- Clavier -------- */
   document.addEventListener('keydown', function (e) {
-    if (!menu.hidden) {
-      if (e.key === 'Escape') closeMenu();
-      return;
-    }
     var set = SET_OF[currentScreen];
     if (!set) {
-      if (e.key === 'Escape' && currentScreen !== 'home') navigate({ screen: 'home' });
+      if (e.key === 'Escape' && currentScreen !== 'home') {
+        navigate({ screen: currentScreen === 'lessons' ? 'home' : 'lessons' });
+      }
       return;
     }
     if (e.key === 'ArrowLeft')  openLetter(set, current[set] - 1);
@@ -384,7 +432,8 @@
 
   /* -------- Préchargement des visuels et des sons -------- */
   function preload() {
-    var srcs = ['assets/alphabet/home.jpg', 'assets/alphabet/grid.jpg', 'assets/fatha/grid.jpg'];
+    var srcs = ['assets/ui/home.jpg', 'assets/ui/lessons.jpg',
+                'assets/alphabet/grid.jpg', 'assets/fatha/grid.jpg'];
     LETTERS.forEach(function (L) {
       srcs.push(L.img ? 'assets/alphabet/' + L.img + '.jpg'
                       : 'assets/alphabet/plate-' + L.plate + '.jpg');
@@ -404,6 +453,7 @@
   /* ======================= Démarrage ======================= */
   buildGrid('alphabet');
   buildGrid('fatha');
+  buildLessons();
 
   var start = parseHash(location.hash);
   render(start, true);
