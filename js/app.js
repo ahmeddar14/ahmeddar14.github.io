@@ -1,6 +1,7 @@
 /* ===========================================================
    متعة التعلم — logique de l'application
 
+   Enchaînement : choix de la langue → bienvenue → sommaire → leçon.
    Sommaire de 15 leçons (« الحروف والمقاطع »), dont deux ont du contenu :
      • leçon 1 « alphabet » : les 28 lettres nues
      • leçon 5 « fatha »    : les 28 lettres avec la fatha
@@ -103,7 +104,7 @@
   };
 
   /* Ratio propre à certains écrans ; les autres gardent celui des fiches */
-  var RATIO = { home: [16, 9], lessons: [16, 9] };
+  var RATIO = { start: [16, 9], home: [16, 9], lessons: [16, 9] };
   var RATIO_DEFAULT = [1076, 717];
 
   /* -------- Correspondances parcours ↔ écrans -------- */
@@ -119,6 +120,7 @@
   var glyphWrap = $('#glyph-wrap');
   var glyphText = $('#glyph-text');
   var screens = {
+    start:   $('#screen-start'),
     home:    $('#screen-home'),
     lessons: $('#screen-lessons'),
     grid:    $('#screen-grid'),
@@ -132,7 +134,7 @@
   var tiles   = { alphabet: $('#tiles-grid'),       fatha: $('#tiles-fgrid') };
 
   var current = { alphabet: 0, fatha: 0 };
-  var currentScreen = 'home';
+  var currentScreen = 'start';
 
   /* ======================= Mise à l'échelle ======================= */
   /* --s sert d’unité de référence aux surcouches (compteur, cadenas…) */
@@ -156,7 +158,8 @@
      Le bouton « retour » du navigateur recule donc d'un écran au lieu
      de quitter le site, et un rafraîchissement rouvre la même page.   */
   function hashOf(state) {
-    if (state.screen === 'home')    return '#';
+    if (state.screen === 'start')   return '#';
+    if (state.screen === 'home')    return '#home';
     if (state.screen === 'lessons') return '#lessons';
     if (state.screen === 'grid')    return '#alphabet';
     if (state.screen === 'fgrid') return '#fatha';
@@ -166,8 +169,9 @@
   function parseHash(h) {
     var parts = String(h || '').replace(/^#/, '').split('/');
     if (parts[0] === 'lessons') return { screen: 'lessons' };
+    if (parts[0] === 'home')    return { screen: 'home' };
     var set = SETS.indexOf(parts[0]) >= 0 ? parts[0] : null;
-    if (!set) return { screen: 'home' };
+    if (!set) return { screen: 'start' };
     if (parts.length > 1) {
       var i = parseInt(parts[1], 10) - 1;
       if (i >= 0 && i < LETTERS.length) return { screen: LETTER_OF[set], i: i };
@@ -397,8 +401,8 @@
   document.addEventListener('keydown', function (e) {
     var set = SET_OF[currentScreen];
     if (!set) {
-      if (e.key === 'Escape' && currentScreen !== 'home') {
-        navigate({ screen: currentScreen === 'lessons' ? 'home' : 'lessons' });
+      if (e.key === 'Escape' && currentScreen !== 'start') {
+        navigate({ screen: currentScreen === 'lessons' ? 'home' : 'start' });
       }
       return;
     }
@@ -432,7 +436,7 @@
 
   /* -------- Préchargement des visuels et des sons -------- */
   function preload() {
-    var srcs = ['assets/ui/home.jpg', 'assets/ui/lessons.jpg',
+    var srcs = ['assets/ui/start.jpg', 'assets/ui/home.jpg', 'assets/ui/lessons.jpg',
                 'assets/alphabet/grid.jpg', 'assets/fatha/grid.jpg'];
     LETTERS.forEach(function (L) {
       srcs.push(L.img ? 'assets/alphabet/' + L.img + '.jpg'

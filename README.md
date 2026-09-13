@@ -30,8 +30,17 @@ vraie voix, la même partout, qui fonctionne sur tous les appareils et hors
 connexion. La synthèse vocale du navigateur a été abandonnée — elle restait
 muette sur la plupart des téléphones, faute de voix arabe installée.
 
-Depuis l'accueil, **أكتشف معانا** et **المحتوى** ouvrent le sommaire ;
-**الرئيسية** revient à l'accueil depuis n'importe quel écran.
+## L'enchaînement
+
+1. **Choix de la langue** (`assets/ui/start.jpg`) — English, Français, العربية.
+   Seul l'arabe a du contenu ; les deux autres annoncent « bientôt ».
+2. **Bienvenue** (`assets/ui/home.jpg`) — **أكتشف معانا** mène au sommaire.
+3. **Sommaire** (`assets/ui/lessons.jpg`) — les 15 leçons.
+4. **La leçon** — grille des 28 lettres, puis une fiche par lettre.
+
+Sur n'importe quel écran, **الرئيسية** ramène au choix de la langue et
+**المحتوى** ouvre le sommaire. Le bouton « retour » du navigateur remonte
+l'enchaînement pas à pas.
 
 ## Navigation dans une fiche
 
@@ -55,13 +64,14 @@ règle CSS ne s'applique plus et l'affichage redevient normal.
 ## Structure du dépôt
 
 ```
-index.html                 les 6 écrans (accueil, sommaire, 2 grilles, 2 fiches)
+index.html                 les 7 écrans (langue, bienvenue, sommaire, 2 grilles, 2 fiches)
 css/styles.css             mise en page, zones cliquables, animations
 js/app.js                  les 15 leçons, les 28 lettres, navigation, son
 assets/
   favicon.png
   ui/
-    home.jpg               accueil (16:9, maquette Figma)
+    start.jpg              choix de la langue (16:9, maquette Figma)
+    home.jpg               écran de bienvenue (16:9, maquette Figma)
     lessons.jpg            sommaire des 15 leçons (16:9)
   alphabet/                visuels du parcours « lettres nues »
     grid.jpg               grille des 28 lettres
@@ -94,7 +104,7 @@ automatiquement par GitHub Pages.
 
 ## Deux formats d'écran
 
-Les visuels du sommaire et de l'accueil sont en 16:9, ceux des leçons en 3:2.
+Les trois premiers écrans sont en 16:9, ceux des leçons en 3:2.
 Plutôt que de déformer les uns ou les autres, la scène change de ratio en
 même temps que l'écran : `js/app.js` pose `--arw` / `--arh` sur `.stage`, et
 la largeur suit. Ajouter un écran d'un troisième format ne demande qu'une
