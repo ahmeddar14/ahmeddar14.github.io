@@ -34,13 +34,17 @@ muette sur la plupart des téléphones, faute de voix arabe installée.
 
 1. **Choix de la langue** (`assets/ui/start.jpg`) — English, Français, العربية.
    Seul l'arabe a du contenu ; les deux autres annoncent « bientôt ».
-2. **Bienvenue** (`assets/ui/home.jpg`) — **أكتشف معانا** mène au sommaire.
+2. **Les 4 catégories** (`assets/ui/categories.jpg`) — الكلمة, الحروف والمقاطع,
+   الجمل, القواعد. Seule **الحروف والمقاطع** est ouverte.
 3. **Sommaire** (`assets/ui/lessons.jpg`) — les 15 leçons.
 4. **La leçon** — grille des 28 lettres, puis une fiche par lettre.
 
 Sur n'importe quel écran, **الرئيسية** ramène au choix de la langue et
-**المحتوى** ouvre le sommaire. Le bouton « retour » du navigateur remonte
+**المحتوى** ouvre les catégories. Le bouton « retour » du navigateur remonte
 l'enchaînement pas à pas.
+
+`assets/ui/home.jpg` (« تعلم .. ألعب .. واكتشف ») ne fait plus partie du
+parcours ; le fichier est conservé au cas où il resservirait.
 
 ## Navigation dans une fiche
 
@@ -64,14 +68,15 @@ règle CSS ne s'applique plus et l'affichage redevient normal.
 ## Structure du dépôt
 
 ```
-index.html                 les 7 écrans (langue, bienvenue, sommaire, 2 grilles, 2 fiches)
+index.html                 les 7 écrans (langue, catégories, sommaire, 2 grilles, 2 fiches)
 css/styles.css             mise en page, zones cliquables, animations
 js/app.js                  les 15 leçons, les 28 lettres, navigation, son
 assets/
   favicon.png
   ui/
     start.jpg              choix de la langue (16:9, maquette Figma)
-    home.jpg               écran de bienvenue (16:9, maquette Figma)
+    categories.jpg         les 4 catégories (16:9, maquette Figma)
+    home.jpg               écran hors parcours, conservé
     lessons.jpg            sommaire des 15 leçons (16:9)
   alphabet/                visuels du parcours « lettres nues »
     grid.jpg               grille des 28 lettres
