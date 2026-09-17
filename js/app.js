@@ -1,7 +1,7 @@
 /* ===========================================================
    متعة التعلم — logique de l'application
 
-   Enchaînement : choix de la langue → bienvenue → sommaire → leçon.
+   Enchaînement : choix de la langue → les 4 catégories → sommaire → leçon.
    Sommaire de 15 leçons (« الحروف والمقاطع »), dont deux ont du contenu :
      • leçon 1 « alphabet » : les 28 lettres nues
      • leçon 5 « fatha »    : les 28 lettres avec la fatha
@@ -104,7 +104,7 @@
   };
 
   /* Ratio propre à certains écrans ; les autres gardent celui des fiches */
-  var RATIO = { start: [16, 9], home: [16, 9], lessons: [16, 9] };
+  var RATIO = { start: [16, 9], cats: [16, 9], lessons: [16, 9] };
   var RATIO_DEFAULT = [1076, 717];
 
   /* -------- Correspondances parcours ↔ écrans -------- */
@@ -121,7 +121,7 @@
   var glyphText = $('#glyph-text');
   var screens = {
     start:   $('#screen-start'),
-    home:    $('#screen-home'),
+    cats:    $('#screen-cats'),
     lessons: $('#screen-lessons'),
     grid:    $('#screen-grid'),
     letter:  $('#screen-letter'),
@@ -159,7 +159,7 @@
      de quitter le site, et un rafraîchissement rouvre la même page.   */
   function hashOf(state) {
     if (state.screen === 'start')   return '#';
-    if (state.screen === 'home')    return '#home';
+    if (state.screen === 'cats')    return '#contenu';
     if (state.screen === 'lessons') return '#lessons';
     if (state.screen === 'grid')    return '#alphabet';
     if (state.screen === 'fgrid') return '#fatha';
@@ -169,7 +169,7 @@
   function parseHash(h) {
     var parts = String(h || '').replace(/^#/, '').split('/');
     if (parts[0] === 'lessons') return { screen: 'lessons' };
-    if (parts[0] === 'home')    return { screen: 'home' };
+    if (parts[0] === 'contenu') return { screen: 'cats' };
     var set = SETS.indexOf(parts[0]) >= 0 ? parts[0] : null;
     if (!set) return { screen: 'start' };
     if (parts.length > 1) {
@@ -402,7 +402,7 @@
     var set = SET_OF[currentScreen];
     if (!set) {
       if (e.key === 'Escape' && currentScreen !== 'start') {
-        navigate({ screen: currentScreen === 'lessons' ? 'home' : 'start' });
+        navigate({ screen: currentScreen === 'lessons' ? 'cats' : 'start' });
       }
       return;
     }
@@ -436,7 +436,7 @@
 
   /* -------- Préchargement des visuels et des sons -------- */
   function preload() {
-    var srcs = ['assets/ui/start.jpg', 'assets/ui/home.jpg', 'assets/ui/lessons.jpg',
+    var srcs = ['assets/ui/start.jpg', 'assets/ui/categories.jpg', 'assets/ui/lessons.jpg',
                 'assets/alphabet/grid.jpg', 'assets/fatha/grid.jpg'];
     LETTERS.forEach(function (L) {
       srcs.push(L.img ? 'assets/alphabet/' + L.img + '.jpg'
